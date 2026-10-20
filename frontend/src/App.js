@@ -3,7 +3,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import ShieldPage from "./pages/ShieldPage";
 import LandingPage from "./pages/LandingPage";
 import NcDocsPage from "./pages/NcDocsPage";
-import VaultPage from "./pages/VaultPage";
 
 // One single NullCash site: every URL is served by the Bifrost v1 mirror
 // (wallet, shield, trade, send, private route, privacy swap, track, docs, about).
@@ -14,7 +13,6 @@ function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/docs" element={<NcDocsPage />} />
-          <Route path="/vault" element={<VaultPage />} />
           <Route path="/app/api" element={<Navigate to="/docs" replace />} />
           <Route path="/app/api/*" element={<Navigate to="/docs" replace />} />
           <Route path="*" element={<ShieldPage />} />

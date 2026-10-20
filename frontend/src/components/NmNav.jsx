@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowRight, BookOpen, Radio, Workflow, Receipt, ShieldCheck, HelpCircle, Repeat, Lock } from 'lucide-react';
+import { ArrowRight, BookOpen, Radio, Workflow, Receipt, ShieldCheck, HelpCircle, Repeat } from 'lucide-react';
 import Logo from './Logo';
 import CaChip from './CaChip';
 
@@ -12,7 +12,6 @@ export const XGlyph = ({ s = 15 }) => (
 const ITEMS = [
   { l: 'Now live: open the app', h: '/app', I: Radio, id: 'live' },
   { l: 'Docs', h: '/docs', I: BookOpen, id: 'docs' },
-  { l: 'Vault · quantum-safe SOL', h: '/vault', I: Lock, id: 'vault' },
   { l: 'Meet the community', h: X_URL, I: null, id: 'x', ext: true },
   { l: 'How it works', h: '/#flow', I: Workflow, id: 'flow' },
   { l: 'Swap without a wallet', h: '/app#private-route', I: Repeat, id: 'swap' },

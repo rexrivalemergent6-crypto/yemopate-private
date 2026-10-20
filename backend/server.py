@@ -12,7 +12,7 @@ from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List
 import uuid
-from bifrost import router as bifrost_router, close_client as bifrost_close, opaque_image_urls, warm_logos, live_relay, warm_vault
+from bifrost import router as bifrost_router, close_client as bifrost_close, opaque_image_urls, warm_logos, live_relay
 from datetime import datetime, timezone
 
 
@@ -268,7 +268,6 @@ async def _start_warm():
     asyncio.create_task(_ds_warm_loop())
     asyncio.create_task(warm_logos())
     asyncio.create_task(live_relay())
-    asyncio.create_task(warm_vault())
 
 
 def _scrub(body: bytes) -> bytes:

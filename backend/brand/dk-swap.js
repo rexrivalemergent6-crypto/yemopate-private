@@ -181,9 +181,6 @@
     ".dk-seg button:hover{color:var(--dk-fg)}.dk-seg button:active{transform:scale(.95)}",
     ".dk-seg button.on{background:var(--dk-bg);color:var(--dk-fg);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.06),0 4px 14px -6px rgba(0,0,0,.18)}",
     ".dk-cl{width:16px;height:16px;border-radius:50%;background:var(--veil-wash);color:var(--veil-hi);font-size:10px;display:inline-flex;align-items:center;justify-content:center}",
-    ".dk-ci{display:flex;align-items:center;gap:10px;margin:0 0 14px;padding:10px 12px;border-radius:14px;border:1px solid var(--dk-line);background:var(--dk-box)}",
-    ".dk-ci-ic{display:grid;place-items:center;flex:none;width:28px;height:28px;border-radius:9px;background:#14160f;color:#f4f6ee}",
-    ".dk-ci b{display:block;font-size:13px;font-weight:650}.dk-ci small{display:block;margin-top:2px;font-size:11.5px;color:var(--dk-mut);line-height:1.35}",
     ".dk-card{background:var(--dk-bg);border:1px solid var(--nc-card-line,var(--dk-line));border-radius:26px;padding:18px 18px 22px;box-shadow:var(--nc-shadow,none);animation:ncRise .45s var(--dk-ease) both}",
     ".dk-lbl{color:var(--dk-mut);font-size:13.5px;font-weight:500;margin:8px 6px 8px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}",
     ".dk-lbl small{font-size:12px;color:var(--dk-mut)}",
@@ -199,10 +196,10 @@
     ".dk-ico img.m{border-radius:50%;object-fit:cover;display:block}",
     ".dk-ico .lt{border-radius:50%;background:var(--veil-wash);color:var(--veil-hi);align-items:center;justify-content:center;font-size:12px;font-weight:700;display:flex}",
     ".dk-ico img.b{position:absolute;right:-3px;bottom:-3px;width:13px;height:13px;border-radius:50%;border:1.5px solid var(--dk-bg);background:var(--dk-bg)}",
-    ".dk-amt{flex:1;min-width:0;min-height:62px;height:auto;background:transparent;border:0;padding:6px 10px;display:flex;flex-direction:column;justify-content:center;align-items:flex-end;gap:2px;cursor:text;text-align:right}",
-    ".dk-amt input{all:unset;font-family:var(--f-sans);font-weight:600;font-size:24px;line-height:1.2;width:100%;color:var(--dk-fg);text-align:right;letter-spacing:-.02em}",
+    ".dk-amt{flex:1;min-width:0;height:62px;background:transparent;border:0;padding:6px 10px;display:flex;flex-direction:column;justify-content:center;align-items:flex-end;gap:2px;cursor:text;text-align:right}",
+    ".dk-amt input{all:unset;font-family:var(--f-sans);font-weight:600;font-size:24px;width:100%;color:var(--dk-fg);text-align:right;letter-spacing:-.02em}",
     ".dk-amt input::placeholder{color:var(--dk-mut)}",
-    ".dk-amt .u{font-size:12px;line-height:1.35;padding-bottom:1px;color:var(--dk-mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}",
+    ".dk-amt .u{font-size:12px;color:var(--dk-mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}",
     ".dk-out{font-weight:600;font-size:24px;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}",
     ".dk-out.z{color:var(--dk-mut)}",
     ".dk-flip{all:unset;width:38px;height:38px;margin:-8px auto -8px;position:relative;z-index:2;border-radius:13px;border:4px solid var(--dk-bg);background:var(--dk-box);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--dk-fg2);transition:transform .35s var(--dk-spring),background .2s}",
@@ -558,7 +555,6 @@
     var usdIn = sel ? usd(sel.usdIn) : (S.send && amt > 0 ? usd(amt * (S.send.price || 0)) : '');
     var h = '';
     h += '<div class="dk-card" data-testid="dk-swap-card">';
-    if (near) h += '<div class="dk-ci" data-testid="dk-confidential-intents"><span class="dk-ci-ic"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.5-3 7.7-7 9-4-1.3-7-4.5-7-9V6z"/><path d="m9 12 2 2 4-4"/></svg></span><div><b>Runs in Confidential Intents</b><small>Your swap settles as a shielded intent: solvers fill it without seeing who you are.</small></div></div>';
     h += '<div class="dk-lbl"><span>From</span><small>Solana · Min $3</small></div>';
     h += '<div class="dk-row">' + tokBtn('source') +
       '<label class="dk-amt"><input id="dk-amount" data-testid="dk-amount" inputmode="decimal" autocomplete="off" placeholder="0" value="' + esc(S.amount) + '">' +
@@ -600,7 +596,7 @@
     if (S.qerr || S.serr) h += '<div class="dk-err" data-testid="dk-error">' + esc(S.serr || S.qerr) +
       (!S.serr && S.qerrSwitch ? ' <button type="button" class="dk-err-sw" data-act="go" data-v="private-route" data-testid="dk-err-switch">Use Private route \u2192</button>' : '') + '</div>';
     h += '<button class="dk-cta" data-act="submit" data-testid="dk-submit"' + (c.ok ? '' : ' disabled') + '>' + (S.submitting ? '<span class="dk-spin"></span>' : '') + esc(c.text) + '</button>';
-    h += '<div class="dk-note">' + (near ? 'Powered by Confidential Intents · ' : '') + 'Creating an order moves no funds · live on-chain quotes</div>';
+    h += '<div class="dk-note">Creating an order moves no funds · live on-chain quotes</div>';
     h += '</div>';
     return h;
   }
@@ -1579,7 +1575,6 @@
     { k: 'keys', label: 'Keys', ico: 'key' }
   ];
   var LEARN = [
-    { label: 'Vault · quantum-safe SOL', ico: 'lock', href: '/vault', ext: true },
     { label: 'How NullCash works', ico: 'spark', act: 'tour' }, { label: 'Privacy model', ico: 'eye', href: '/#zk' },
     { label: 'Fees', ico: 'coin', href: '/#fees' }, { label: 'Docs', ico: 'book', href: '/docs', ext: true }
   ];

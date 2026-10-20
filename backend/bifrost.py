@@ -36,11 +36,9 @@ TARGETS = {
     "indexer": "https://indexer.veilit.xyz",
     "relayer": "https://relayer.veilit.xyz",
     "rpc": "https://rpc.veilit.xyz",
-    # quantum-safe Solana vault (on-chain program) mirrored & re-branded as NullCash Vault
-    "vault": "https://www.omnizec.com",
 }
 # order matters: subdomains before apex
-HOST_ORDER = ["app", "indexer", "relayer", "rpc", "site", "vault"]
+HOST_ORDER = ["app", "indexer", "relayer", "rpc", "site"]
 
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/129.0 Safari/537.36")
@@ -83,9 +81,6 @@ def _cacheable(target: str, path: str, method: str) -> bool:
     p = "/" + path
     if target == "indexer" and p.startswith("/v1/logo/"):
         return True
-    if target == "vault":
-        return (p.startswith(("/assets/", "/fonts/", "/unseen/"))
-                or bool(re.search(r"\.(webp|png|jpg|jpeg|svg|ico|woff2?|wasm|css|js)$", p)))
     if target not in ("site", "app"):
         return False
     return (p.startswith("/_next/static/") or p.startswith("/circuits/")
@@ -216,41 +211,6 @@ async def _logo_small(path: str, request: Request):
 async def _idx_fetch(path: str, qs: str):
     url = f"{TARGETS['indexer']}/{path}" + (f"?{qs}" if qs else "")
     return await get_client().get(url, headers={"user-agent": UA, "origin": TARGETS["app"], "referer": TARGETS["app"] + "/"})
-
-
-async def warm_vault():
-    """Pre-fetch the mirrored vault SPA + all its /assets chunks once at startup so the
-    in-memory cache always holds the real JS/CSS, even if a 36-chunk preload burst makes
-    Vercel SPA-fall-back to index.html for a moment."""
-    await asyncio.sleep(4)
-    up = TARGETS["vault"]
-    hdr = {"user-agent": UA, "accept": "text/html,*/*"}
-    try:
-        for attempt in range(3):
-            r = await get_client().get(f"{up}/?do=vault", headers=hdr)
-            if "text/html" in r.headers.get("content-type", "") and r.status_code == 200:
-                break
-            await asyncio.sleep(1.0)
-        html = r.text
-        assets = set(re.findall(r'/assets/[A-Za-z0-9_.-]+\.(?:js|css)', html))
-        assets |= set(re.findall(r'/(?:theme\.js|fonts/[A-Za-z0-9_.-]+\.woff2?)', html))
-        sem = asyncio.Semaphore(4)
-
-        async def one(a):
-            async with sem:
-                for _ in range(3):
-                    try:
-                        rr = await get_client().get(f"{up}{a}", headers={"user-agent": UA})
-                        if rr.status_code == 200 and "text/html" not in rr.headers.get("content-type", ""):
-                            _cache_put(f"{up}{a}", 200, dict(rr.headers), rr.content)
-                            return
-                    except Exception:
-                        pass
-                    await asyncio.sleep(0.5)
-        await asyncio.gather(*(one(a) for a in assets))
-        logger.info(f"bifrost: warmed {len(assets)} vault assets")
-    except Exception as e:
-        logger.warning(f"bifrost: vault warm failed: {e}")
 
 
 async def warm_logos():
@@ -443,61 +403,8 @@ def app_js_fixes(text: str) -> str:
 
 
 
-def _vault_rewrite(text: str, origin: str, ctype: str) -> str:
-    """Isolated rewrite for the omnizec Solana vault SPA (kept fully separate from the
-    veilit app/site logic so nothing else can break). Makes the mirror run on our own
-    domain, reuse our mainnet RPC proxy, and wear NullCash branding."""
-    p = f"{PREFIX}/vault"
-    # route the app's RPC through our existing Solana-mainnet proxy
-    text = text.replace("/api/rpc", f"{PREFIX}/rpc")
-    # the vault hard-binds its passkey domain (rpId) to omnizec.com and refuses to run
-    # elsewhere; let it use whatever host it is actually served from (our domain).
-    text = re.sub(
-        r'=\s*([A-Za-z$_][\w$]*)===`omnizec\.com`\|\|\1\.endsWith\(`\.omnizec\.com`\)\?`omnizec\.com`:void 0',
-        r"=\1", text)
-    if "html" in ctype:
-        text = re.sub(r'((?:href|src|poster|data-src|content)=["\'])/(?!/|api/bifrost/)',
-                      rf"\1{p}/", text)
-        text = re.sub(r'url\((["\']?)/(?!/|api/bifrost/)', rf"url(\1{p}/", text)
-        # NullCash branding + icons
-        text = re.sub(r"<title>[^<]*</title>", "<title>NullCash Vault · quantum-safe SOL</title>", text, count=1)
-        text = re.sub(r'<link\b[^>]*rel=["\'](?:shortcut )?(?:icon|apple-touch-icon(?:-precomposed)?|mask-icon)["\'][^>]*>', "", text)
-        text = re.sub(r'<link\b[^>]*rel=["\']manifest["\'][^>]*>', "", text)
-        icons = (f'<link rel="icon" href="{PREFIX}/_brand/favicon-32.png?v=5" sizes="32x32" type="image/png"/>'
-                 f'<link rel="apple-touch-icon" href="{PREFIX}/_brand/apple-touch-icon.png?v=5" sizes="180x180"/>'
-                 '<meta name="apple-mobile-web-app-title" content="NullCash Vault"/>'
-                 '<style id="nc-vault-skin">'
-                 'header.site-header,footer.site-footer,nav.tool-tabs,.unseen-world,.presence-control,.back-link,.workspace-heading{display:none!important}'
-                 'html,body{background:#f4f6ee!important}'
-                 '#root{min-height:auto!important}'
-                 'main.stage,main.stage.has-tool{display:block!important;min-height:100vh!important;height:auto!important;padding:34px 16px 48px!important;background:#f4f6ee!important}'
-                 'main .stage-copy{position:static!important;inset:auto!important;transform:none!important;max-width:660px!important;margin:0 auto!important;width:100%!important}'
-                 'main .workspace-heading{margin:0 auto 16px!important}'
-                 'main .tool-surface{margin:0 auto!important;max-width:660px!important}'
-                 '</style>')
-        if "<head>" in text:
-            text = text.replace("<head>", "<head>" + icons, 1)
-    elif "css" in ctype:
-        text = re.sub(r'url\((["\']?)/(?!/|api/bifrost/)', rf"url(\1{p}/", text)
-    elif "javascript" in ctype:
-        # rolldown/vite preload helper hardcodes the asset base to "/" -> it builds root
-        # "/assets/x.js" URLs that 404 under our mount. Point it at the vault mount instead.
-        text = re.sub(r'function\((\w+)\)\{return`/`\+\1\}',
-                      lambda m: 'function(%s){return`%s/`+%s}' % (m.group(1), p, m.group(1)), text)
-        # light, safe visible-string branding only (no identifier/logic changes)
-        text = text.replace("omni vault", "NullCash vault")
-        text = text.replace("omni included", "NullCash included").replace("© OMNI", "© NullCash").replace("© 2026 OMNI", "© 2026 NullCash")
-        text = text.replace("The vault opens only on ", "This vault opens only on ")
-    return text
-
-
 def rewrite_text(text: str, target: str, origin: str, ctype: str) -> str:
     base = f"{origin}{PREFIX}"
-    if target == "vault":
-        for t in HOST_ORDER:
-            up = TARGETS[t]
-            text = text.replace(up, f"{base}/{t}")
-        return _vault_rewrite(text, origin, ctype)
     if target in ("indexer", "relayer") and "json" in ctype:
         text = strip_project_token_json(text)
     if target == "app" and "javascript" in ctype:
@@ -534,15 +441,7 @@ def rewrite_text(text: str, target: str, origin: str, ctype: str) -> str:
             # next flight / json payload references
             text = re.sub(r'(?<![A-Za-z0-9_/.])/_next/', f"{p}/_next/", text)
             if "text/html" in ctype:
-                # NullCash icons with fresh (cache-busted) URLs so browsers / iOS drop any old icon
-                text = re.sub(r'<link\b[^>]*rel=["\'](?:shortcut )?(?:icon|apple-touch-icon(?:-precomposed)?|mask-icon)["\'][^>]*>', "", text)
-                text = re.sub(r'<link\b[^>]*rel=["\']manifest["\'][^>]*>', "", text)
-                icons = (f'<link rel="icon" href="{PREFIX}/_brand/favicon-32.png?v=5" sizes="32x32" type="image/png"/>'
-                         f'<link rel="icon" href="{PREFIX}/_brand/favicon-192.png?v=5" sizes="192x192" type="image/png"/>'
-                         f'<link rel="apple-touch-icon" href="{PREFIX}/_brand/apple-touch-icon.png?v=5" sizes="180x180"/>'
-                         f'<link rel="manifest" href="{PREFIX}/_brand/manifest.webmanifest?v=5"/>'
-                         '<meta name="apple-mobile-web-app-title" content="NullCash"/>')
-                inj = _inject_script(target) + icons
+                inj = _inject_script(target)
                 if "<head>" in text:
                     text = text.replace("<head>", "<head>" + inj, 1)
                 elif re.search(r"<head[^>]*>", text):
@@ -802,20 +701,7 @@ async def proxy(target: str, path: str, request: Request):
                 return StreamingResponse(gen(), status_code=r.status_code, headers=headers)
             raw = await r.aread()
             await r.aclose()
-            # vault static assets: Vercel SPA-falls-back to index.html (200) under burst/rate-limit;
-            # that HTML must never be cached or served in place of a .js/.css module.
-            vault_asset_html = (target == "vault" and use_cache and "text/html" in ctype)
-            if vault_asset_html:
-                good = _cache_get(ckey)
-                if good:
-                    _, gs, gh, gr = good
-                    return _build_response(gs, gh, gr, target, origin, cached=True, path=path)
-                if i < attempts - 1:
-                    await asyncio.sleep(0.5 * (2 ** i))
-                    continue
-                return JSONResponse({"error": "Vault asset busy, retry", "busy": True}, status_code=503,
-                                    headers={"access-control-allow-origin": "*", "retry-after": "2"})
-            if target not in ("site", "app", "vault") and ("text/html" in ctype or r.headers.get("cf-mitigated") == "challenge"):
+            if target not in ("site", "app") and ("text/html" in ctype or r.headers.get("cf-mitigated") == "challenge"):
                 logger.warning(f"bifrost upstream challenge {target}/{path} (attempt {i + 1})")
                 if i < attempts - 1:
                     await asyncio.sleep(0.6 * (2 ** i))
@@ -829,7 +715,7 @@ async def proxy(target: str, path: str, request: Request):
                 if method in ("GET", "HEAD") or rate_limited or r.status_code == 503:
                     await asyncio.sleep((0.9 if rate_limited else 0.4) * (2 ** i))
                     continue
-            if use_cache and r.status_code == 200 and not (target == "vault" and "text/html" in ctype):
+            if use_cache and r.status_code == 200:
                 _cache_put(ckey, r.status_code, dict(r.headers), raw)
             if attempts == 4 and r.status_code == 200:
                 _QUOTE_MICRO[url] = (time.time(), r.status_code, dict(r.headers), raw)

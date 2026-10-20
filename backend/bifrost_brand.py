@@ -214,10 +214,7 @@ function start(){
  if(started)return;started=true;
  if(DBG.nobrand){document.documentElement.classList.add('bf-ready');setInterval(function(){document.documentElement.classList.add('bf-ready');},300);return;}
  walk(document.documentElement);
- try{var fl=document.createElement('link');sa.call(fl,'rel','icon');sa.call(fl,'href',BU+'favicon.png?v=5');sa.call(fl,'id','bf-icon');document.head.appendChild(fl);}catch(e){}
- // keep only NullCash icons / manifest in <head> (the app re-adds its own on hydration)
- var icoClean=function(){try{var ls=document.querySelectorAll('link[rel~="icon"],link[rel="apple-touch-icon"],link[rel="apple-touch-icon-precomposed"],link[rel="manifest"],link[rel="mask-icon"]');for(var i=0;i<ls.length;i++){var hh=ls[i].getAttribute('href')||'';if(hh.indexOf(BU)!==0)ls[i].parentNode&&ls[i].parentNode.removeChild(ls[i]);}}catch(e){}};
- icoClean();setInterval(icoClean,1000);
+ try{var fl=document.createElement('link');sa.call(fl,'rel','icon');sa.call(fl,'href',BU+'favicon.png?v=4');sa.call(fl,'id','bf-icon');document.head.appendChild(fl);}catch(e){}
  var syncTitle=function(){var t=document.title;if(t&&TXT.test(t)){var nt=rt(t);if(nt!==t)document.title=nt;}};
  syncTitle();setInterval(syncTitle,800);
  var CNT=0;window.__bft={};
@@ -291,7 +288,7 @@ def head_inject(target: str, prefix: str) -> str:
     )
 
 
-_ICON_V = "5"
+_ICON_V = "4"
 
 
 def nullcash_manifest():
